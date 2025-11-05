@@ -483,7 +483,7 @@ int run(int argc, char *argv[]) {
                 }
                 currentTick = getTickNumberFromNode(qc);
             }
-            if (currentTick <= tick) {
+            if (currentTick < tick) {
                 printDebug("Current tick %u vs local tick %u | sleep 3s\n", currentTick, tick);
                 SLEEP(3000);
                 continue;
