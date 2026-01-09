@@ -30,6 +30,8 @@ int parseToStringDetailLevel = 1;
 #define SPECTRUM_STATS_LOG_SIZE 224
 #define CONTRACT_RESERVE_DEDUCTION 13
 #define CONTRACT_RESERVE_DEDUCTION_LOG_SIZE 24
+#define ORACLE_QUERY_STATUS_CHANGE 14
+#define ORACLE_QUERY_STATUS_CHANGE_LOG_SIZE 46
 #define CUSTOM_MESSAGE 255
 
 #define LOG_HEADER_SIZE 26 // 2 bytes epoch + 4 bytes tick + 4 bytes log size/types + 8 bytes log id + 8 bytes log digest
@@ -60,6 +62,8 @@ std::string logTypeToString(uint8_t type){
             return "Spectrum stats";
         case 13:
             return "Contract reserve deduction";
+        case ORACLE_QUERY_STATUS_CHANGE:
+            return "Oracle query status change";
         case 255:
             return "Custom msg";
     }
@@ -271,6 +275,66 @@ std::string parseLogToString_type2_type3(uint8_t* ptr){
                          + std::to_string(unit[6]);
     return result;
 }
+
+std::string getOracleQueryStatusString(uint8_t status)
+{
+    constexpr uint8_t ORACLE_QUERY_STATUS_UNKNOWN = 0;     ///< Query not found / valid.
+    constexpr uint8_t ORACLE_QUERY_STATUS_PENDING = 1;     ///< Query is being processed.
+    constexpr uint8_t ORACLE_QUERY_STATUS_COMMITTED = 2;   ///< The quorum has commited to a oracle reply, but it has not been revealed yet.
+    constexpr uint8_t ORACLE_QUERY_STATUS_SUCCESS = 3;     ///< The oracle reply has been confirmed and is available.
+    constexpr uint8_t ORACLE_QUERY_STATUS_UNRESOLVABLE = 5;///< No valid oracle reply is available, because computors disagreed about the value.
+    constexpr uint8_t ORACLE_QUERY_STATUS_TIMEOUT = 4;     ///< No valid oracle reply is available and timeout has hit.
+
+    switch (status)
+    {
+    case ORACLE_QUERY_STATUS_PENDING:
+        return "pending";
+    case ORACLE_QUERY_STATUS_COMMITTED:
+        return "committed";
+    case ORACLE_QUERY_STATUS_SUCCESS:
+        return "success";
+    case ORACLE_QUERY_STATUS_UNRESOLVABLE:
+        return "unresolvable";
+    case ORACLE_QUERY_STATUS_TIMEOUT:
+        return "timeout";
+    default:
+        return "unknown";
+    }
+}
+
+std::string parseToStringOracleQueryStatusChange(uint8_t* ptr)
+{
+    constexpr uint8_t ORACLE_QUERY_TYPE_CONTRACT_QUERY = 0;
+    constexpr uint8_t ORACLE_QUERY_TYPE_CONTRACT_SUBSCRIPTION = 1;
+    constexpr uint8_t ORACLE_QUERY_TYPE_USER_QUERY = 2;
+
+    uint64_t queryingEntity0 = *((uint64_t*)ptr);
+    int64_t queryId = *((uint64_t*)ptr + 32);
+    uint32_t interfaceIndex = *((uint32_t*)ptr + 40);
+    uint8_t type = *((uint8_t*)ptr + 44);
+    uint8_t status = *((uint8_t*)ptr + 45);
+
+    std::string s = "status " + getOracleQueryStatusString(status) + ", queryId " + std::to_string(queryId) + ", interface " + std::to_string(interfaceIndex) + ", origin ";
+
+    if (type == ORACLE_QUERY_TYPE_CONTRACT_QUERY)
+    {
+        s += " contract " + std::to_string(queryingEntity0);
+    }
+    else if (type == ORACLE_QUERY_TYPE_CONTRACT_SUBSCRIPTION)
+    {
+        s += " subscriptionId " + std::to_string(queryingEntity0);
+    }
+    else if (type == ORACLE_QUERY_TYPE_USER_QUERY)
+    {
+        char sourceIdentity[61] = { 0 };
+        const bool isLowerCase = false;
+        getIdentityFromPublicKey(ptr, sourceIdentity, isLowerCase);
+        s += " user " + std::string(sourceIdentity);
+    }
+
+    return s;
+}
+
 unsigned long long printQubicLog(uint8_t* logBuffer, int bufferSize, uint64_t fromId, uint64_t toId){
     if (bufferSize == 0){
         LOG("Empty log\n");
@@ -374,6 +438,14 @@ unsigned long long printQubicLog(uint8_t* logBuffer, int bufferSize, uint64_t fr
                 }
                 else {
                     LOG("Malfunction buffer size for CONTRACT_RESERVE_DEDUCTION log\n");
+                }
+                break;
+            case ORACLE_QUERY_STATUS_CHANGE:
+                if (messageSize == ORACLE_QUERY_STATUS_CHANGE_LOG_SIZE) {
+                    humanLog = parseToStringOracleQueryStatusChange(logBuffer);
+                }
+                else {
+                    LOG("Unexpected log message size for ORACLE_QUERY_STATUS_CHANGE\n");
                 }
                 break;
             // TODO: stay up-to-date with core node contract logger
