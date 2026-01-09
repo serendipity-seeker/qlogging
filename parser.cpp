@@ -309,27 +309,27 @@ std::string parseToStringOracleQueryStatusChange(uint8_t* ptr)
     constexpr uint8_t ORACLE_QUERY_TYPE_USER_QUERY = 2;
 
     uint64_t queryingEntity0 = *((uint64_t*)ptr);
-    int64_t queryId = *((uint64_t*)ptr + 32);
-    uint32_t interfaceIndex = *((uint32_t*)ptr + 40);
-    uint8_t type = *((uint8_t*)ptr + 44);
-    uint8_t status = *((uint8_t*)ptr + 45);
+    int64_t queryId = *(int64_t*)(ptr + 32);
+    uint32_t interfaceIndex = *(uint32_t*)(ptr + 40);
+    uint8_t type = *(uint8_t*)(ptr + 44);
+    uint8_t status = *(uint8_t*)(ptr + 45);
 
     std::string s = "status " + getOracleQueryStatusString(status) + ", queryId " + std::to_string(queryId) + ", interface " + std::to_string(interfaceIndex) + ", origin ";
 
     if (type == ORACLE_QUERY_TYPE_CONTRACT_QUERY)
     {
-        s += " contract " + std::to_string(queryingEntity0);
+        s += "contract " + std::to_string(queryingEntity0);
     }
     else if (type == ORACLE_QUERY_TYPE_CONTRACT_SUBSCRIPTION)
     {
-        s += " subscriptionId " + std::to_string(queryingEntity0);
+        s += "subscriptionId " + std::to_string(queryingEntity0);
     }
     else if (type == ORACLE_QUERY_TYPE_USER_QUERY)
     {
         char sourceIdentity[61] = { 0 };
         const bool isLowerCase = false;
         getIdentityFromPublicKey(ptr, sourceIdentity, isLowerCase);
-        s += " user " + std::string(sourceIdentity);
+        s += "user " + std::string(sourceIdentity);
     }
 
     return s;
