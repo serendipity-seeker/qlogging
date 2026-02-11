@@ -399,6 +399,7 @@ unsigned int SC_BEGIN_EPOCH_TX = NUMBER_OF_TRANSACTIONS_PER_TICK + 1;
 unsigned int SC_BEGIN_TICK_TX = NUMBER_OF_TRANSACTIONS_PER_TICK + 2;
 unsigned int SC_END_TICK_TX = NUMBER_OF_TRANSACTIONS_PER_TICK + 3;
 unsigned int SC_END_EPOCH_TX = NUMBER_OF_TRANSACTIONS_PER_TICK + 4;
+unsigned int SC_NOTIFICATION_TX = NUMBER_OF_TRANSACTIONS_PER_TICK + 5;
 
 bool isValidRange(long long start, long long length)
 {
@@ -429,6 +430,10 @@ void printTxMapTable(ResponseAllLogIdRangesFromTick& txmap)
         }
     }
 
+    if (isValidRange(txmap.fromLogId[SC_NOTIFICATION_TX], txmap.length[SC_NOTIFICATION_TX]))
+    {
+        LOG("NOTIFICATIONS\t\t%u\t%u\n", txmap.fromLogId[SC_NOTIFICATION_TX], txmap.fromLogId[SC_NOTIFICATION_TX] + txmap.length[SC_NOTIFICATION_TX] - 1);
+    }
     if (isValidRange(txmap.fromLogId[SC_END_TICK_TX], txmap.length[SC_END_TICK_TX]))
     {
         LOG("END_TICK\t\t%u\t%u\n", txmap.fromLogId[SC_END_TICK_TX], txmap.fromLogId[SC_END_TICK_TX] + txmap.length[SC_END_TICK_TX] - 1);
